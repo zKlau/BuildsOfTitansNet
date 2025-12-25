@@ -1,0 +1,279 @@
+# .NET Core
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.log
+*.tmp
+*.temp
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+*.sdf
+
+# Visual Studio 2015/2017/2019/2022
+.vs/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Rider
+.idea/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+*.dll
+*.exe
+*.pdb
+*.dll.config
+*.exe.config
+
+# NuGet
+*.nupkg
+*.snupkg
+*.nuget.props
+*.nuget.targets
+packages/
+.nuget/
+
+# MSBuild
+*.msbuild.binlog
+*.msbuild.cache
+
+# ASP.NET Core
+appsettings.Development.json
+appsettings.*.json
+!appsettings.json
+
+# Entity Framework
+*.db
+*.db-shm
+*.db-wal
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Linux
+*~
+
+# Logs
+*.log
+logs/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# Temporary folders
+tmp/
+temp/
+
+# JetBrains Rider
+.idea/
+
+# ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# TeamCity
+_TeamCity*
+
+# dotCover
+*.dotCover
+
+# dotTrace
+*.dotTrace
+
+# AppVeyor
+appveyor.yml
+
+# Cake - Uncomment if you are using it
+# tools/**
+# !tools/packages.config
+
+# T4 templates
+*.tt.resolved
+
+# Secrets
+secrets.json
+*.pfx
+*.p12
+*.cer
+*.key
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Migration backups
+*.bak
+
+# IIS
+*.svclog
+
+# Azure
+*.publishsettings
+*.pubxml
+*.azurePubxml
+*.azurePubxml.user
+
+# Docker
+.dockerignore
+
+# Kubernetes
+*.yaml
+*.yml
+
+# Helm
+chart/
+
+# Terraform
+*.tfstate
+*.tfvars
+.terraform/
+
+# Ansible
+*.retry
+
+# Vagrant
+.vagrant/
+
+# Packer
+*.pem
+
+# Chef
+Berksfile.lock
+.kitchen/
+.kitchen.local.yml
+
+# Test results
+TestResults/
+*.trx
+*.testsettings
+
+# NUnit
+*.VisualState.xml
+
+# xUnit
+*.xunit
+
+# Coverlet
+coverage.json
+coverage.opencover.xml
+
+# .NET Core tools
+.dotnet/
+
+# Local History for Visual Studio Code
+.history/
+
+# Built Visual Studio Code Extensions
+*.vsix
+
+# Windows Installer files
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
+# End of .gitignore
