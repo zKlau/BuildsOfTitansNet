@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace BuildsOfTitansNet.Models
 {
@@ -32,9 +33,15 @@ namespace BuildsOfTitansNet.Models
         [ForeignKey("DietId")]
         public Diet Diet { get; set; } = null!;
 
-        public ICollection<BaseStat> BaseStats { get; set; } = new List<BaseStat>();
+        [JsonPropertyName("base_stat")]
+        public BaseStat? BaseStat { get; set; }
+        
         public ICollection<Build> Builds { get; set; } = new List<Build>();
+        
+        [JsonPropertyName("abilities")]
         public ICollection<DinosaurAbility> DinosaurAbilities { get; set; } = new List<DinosaurAbility>();
+        
+        [JsonPropertyName("slots")]
         public ICollection<SpeciesAbilitySlot> SpeciesAbilitySlots { get; set; } = new List<SpeciesAbilitySlot>();
         public ICollection<Subspecies> Subspecies { get; set; } = new List<Subspecies>();
     }

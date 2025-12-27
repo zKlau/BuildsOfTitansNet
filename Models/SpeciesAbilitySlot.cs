@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace BuildsOfTitansNet.Models
 {
@@ -29,6 +30,7 @@ namespace BuildsOfTitansNet.Models
         [ForeignKey("AbilitySlotId")]
         public AbilitySlot AbilitySlot { get; set; } = null!;
 
+        [JsonIgnore]
         [ForeignKey("SpeciesId")]
         public Species Species { get; set; } = null!;
     }

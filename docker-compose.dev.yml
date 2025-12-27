@@ -17,5 +17,5 @@ services:
       - "${API_HTTPS_PORT:-8081}:8081"
     volumes:
       - ./:/app
-    command: dotnet watch --verbose -- run
+    command: bash -c "dotnet run --project BuildsOfTitans.csproj --no-launch-profile"
     restart: unless-stopped

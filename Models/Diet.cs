@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace BuildsOfTitansNet.Models
 {
@@ -23,6 +24,7 @@ namespace BuildsOfTitansNet.Models
         public DateTime UpdatedAt { get; set; }
 
         // Navigation property
+        [JsonIgnore]
         public ICollection<Species> Species { get; set; } = new List<Species>();
     }
 }
