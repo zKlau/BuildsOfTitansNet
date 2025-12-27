@@ -33,6 +33,16 @@ public class SpeciesController : ControllerBase
         };
     }
 
+    private object ReturnSpeciesPreview(BuildsOfTitansNet.Models.Species s)
+    {
+        return new {
+            s.Id,
+            s.Name,
+            s.Icon,
+            diet = s.Diet.Name,
+        };
+    }
+
     private List<BuildsOfTitansNet.Models.Species> GetSpeciesFromDb()
     {
         return _dbContext.Species
@@ -44,6 +54,13 @@ public class SpeciesController : ControllerBase
             .Include(s => s.SpeciesAbilitySlots)
                 .ThenInclude(sas => sas.AbilitySlot)
             .ToList();
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetSpeciesPreview() 
+    {
+        var species = GetSpeciesFromDb();
+        return Ok(new { species = species.Select(s => ReturnSpeciesPreview(s) )});
     }
 
     [HttpGet("all")]
