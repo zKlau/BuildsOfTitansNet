@@ -14,20 +14,9 @@ public class SpeciesController : ControllerBase
         _dbContext = dbContext;
     }
 
-    [HttpGet("all")]
-    public async Task<IActionResult> GetSpecies() 
+    private object ReturnSpecies(BuildsOfTitansNet.Models.Species s)
     {
-        var species = await _dbContext.Species
-            .Include(s => s.Diet)
-            .Include(s => s.BaseStat)
-            .Include(s => s.DinosaurAbilities)
-                .ThenInclude(da => da.Ability)
-            .Include(s => s.SpeciesAbilitySlots)
-                .ThenInclude(sas => sas.AbilitySlot)
-            .ToListAsync();
-
-        var response = species.Select(s => new 
-        {
+        return new {
             s.Id,
             s.Name,
             s.Icon,
@@ -41,9 +30,36 @@ public class SpeciesController : ControllerBase
                 limit = sas.Limit
             }),
             subspecies = s.Subspecies,
-        });
-        
-            
-        return Ok(new { species = response });
+        };
+    }
+
+    private List<BuildsOfTitansNet.Models.Species> GetSpeciesFromDb()
+    {
+        return _dbContext.Species
+            .Include(s => s.Diet)
+            .Include(s => s.BaseStat)
+            .Include(s => s.Subspecies)
+            .Include(s => s.DinosaurAbilities)
+                .ThenInclude(da => da.Ability)
+            .Include(s => s.SpeciesAbilitySlots)
+                .ThenInclude(sas => sas.AbilitySlot)
+            .ToList();
+    }
+
+    [HttpGet("all")]
+    public async Task<IActionResult> GetSpecies() 
+    {
+        var species = GetSpeciesFromDb();
+        return Ok(new { species = species.Select(s => ReturnSpecies(s) )});
+    }
+
+
+    [HttpGet("{name}")]
+    public async Task<IActionResult> GetSpeciesName(string name) 
+    {
+        var species = GetSpeciesFromDb();
+        species = species.Where(s => s.Name.ToLower().Contains(name.ToLower())).ToList();
+
+        return Ok(new {species = ReturnSpecies(species.FirstOrDefault() ?? new BuildsOfTitansNet.Models.Species())});
     }
 }
