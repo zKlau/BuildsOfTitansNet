@@ -213,12 +213,6 @@ secrets.json
 *.azurePubxml
 *.azurePubxml.user
 
-# Docker
-.dockerignore
-
-# Kubernetes
-*.yaml
-*.yml
 
 # Helm
 chart/
