@@ -4,7 +4,7 @@ using BuildsOfTitansNet.Data;
 using Microsoft.EntityFrameworkCore;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("v1/[controller]")]
 public class SpeciesController : ControllerBase
 {
     private readonly ApplicationDbContext _dbContext;

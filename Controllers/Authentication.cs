@@ -1,51 +1,26 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using System.Security.Claims;
-using System.Security.Cryptography.Xml;
 using System.Text;
 using BuildsOfTitansNet.Data;
 using Google.Apis.Auth;
-using Google.Apis.Auth.OAuth2.Requests;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 [ApiController]
-[Route("api/[controller]")]
-public class AuthController : ControllerBase
+[Route("v1/auth")]
+public class AuthenticationController : ControllerBase
 {
     private readonly ApplicationDbContext _dbContext;
-    public AuthController(ApplicationDbContext dbContext)
+    public AuthenticationController(ApplicationDbContext dbContext)
     {
         _dbContext = dbContext;
     }
 
-    public async Task<GoogleJsonWebSignature.Payload> ValidateGoogleToken(string idToken)
-    {
-        return await GoogleJsonWebSignature.ValidateAsync(idToken);
+    public async Task<GoogleJsonWebSignature.Payload> ValidateGoogleToken(string idToken) => await GoogleJsonWebSignature.ValidateAsync(idToken);
 
-    }
-
-    private string GenerateJwtToken(string userId, string email, string name)
-    {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? "default_secret_key_please_change"));
-        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        
-        var claims = new[]
-        {
-            new Claim("userId", userId),
-            new Claim("email", email),
-            new Claim("name", name)
-        };
-        
-        var token = new JwtSecurityToken(
-            claims: claims,
-            expires: DateTime.UtcNow.AddDays(1),
-            signingCredentials: credentials
-        );
-        
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
+ 
     public string? ExtractTokenFromHeader(string authorizationHeader)
     {
         if (AuthenticationHeaderValue.TryParse(authorizationHeader, out var headerValue))
@@ -56,6 +31,15 @@ public class AuthController : ControllerBase
             }
         }
         return null;
+    }
+
+    public void GenerateAndSaveRefreshToken(BuildsOfTitansNet.Models.User user)
+    {
+        string refreshToken = AuthenticationService.GenerateRefreshToken();
+        AuthenticationService.SetTokensInsideCookie(refreshToken, HttpContext);
+
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenCreatedAt = DateTime.UtcNow;
     }
 
     [HttpPost("login")]
@@ -91,8 +75,9 @@ public class AuthController : ControllerBase
 
             if(user != null)
             {
-                string jwtToken = GenerateJwtToken(user.Uid ?? "", user.Email ?? "", user.Name ?? "");
-
+                string jwtToken = AuthenticationService.GenerateJwtToken(user.Uid ?? "", user.Email ?? "", user.Name ?? "");
+                GenerateAndSaveRefreshToken(user);
+                
                 return Ok(new { token = jwtToken });
             }
 
@@ -103,8 +88,30 @@ public class AuthController : ControllerBase
         {
             return Unauthorized(new { message = "Invalid Google token.", error = ex.Message });
         }
+    }
 
 
+    [HttpPost("refresh")]
+    public async Task<IActionResult> RefreshUser()
+    {
+        if (!Request.Cookies.TryGetValue("refreshToken", out var refreshToken))
+        {
+            return Unauthorized(new { message = "Refresh token cookie is missing." });
+        }
+
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+
+        if (user == null)
+        {
+            return Unauthorized(new { message = "Invalid refresh token." });
+        }
+
+        string newJwtToken = AuthenticationService.GenerateJwtToken(user.Uid ?? "", user.Email ?? "", user.Name ?? "");
+        GenerateAndSaveRefreshToken(user);
+
+        await _dbContext.SaveChangesAsync();
+
+        return Ok(new { token = newJwtToken });
     }
 
 }

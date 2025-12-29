@@ -6,7 +6,16 @@ using System;
 DotNetEnv.Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
+var AllowedOriginsName = "corsOriginsBuildsOfTitansNet";
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: AllowedOriginsName,
+                      policy  =>
+                      {
+                          policy.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+                      });
+});
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -28,32 +37,13 @@ if (app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+
+
+
 var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
-
-
-app.MapGet("/test", async (ApplicationDbContext dbContext) =>
-{
-    var speciesCount = await dbContext.Species.CountAsync();
-    return Results.Ok(new { SpeciesCount = speciesCount });
-});
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }))
     .WithName("Health")
@@ -61,6 +51,7 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy" }))
     .Produces(200);
 
 app.MapControllers();
+app.UseCors(AllowedOriginsName);
 app.Run();
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
