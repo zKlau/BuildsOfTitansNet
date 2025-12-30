@@ -26,6 +26,28 @@ namespace BuildsOfTitansNet.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.CreatedAt)
+                .HasConversion(
+                    v => v,
+                    v => new DateTime(v.Ticks, DateTimeKind.Utc))
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .ValueGeneratedOnAdd();
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.UpdatedAt)
+                .HasConversion(
+                    v => v,
+                    v => new DateTime(v.Ticks, DateTimeKind.Utc))
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .ValueGeneratedOnAdd();
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.RefreshTokenCreatedAt)
+                .HasConversion(
+                    v => v,
+                    v => v.HasValue ? new DateTime(v.Value.Ticks, DateTimeKind.Utc) : null);
         }
     }
 }
