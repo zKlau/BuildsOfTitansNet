@@ -2,6 +2,10 @@ using BuildsOfTitansNet.Data;
 using Microsoft.EntityFrameworkCore;
 using DotNetEnv;
 using System;
+using BuildsOfTitansNet.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 DotNetEnv.Env.Load();
 
@@ -14,8 +18,24 @@ builder.Services.AddCors(options =>
                       policy  =>
                       {
                           policy.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+
                       });
 });
+builder.Services.AddAuthentication("Bearer")
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? "default_secret_key_please_change")),
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -25,6 +45,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 
 var app = builder.Build();
+
+
+app.UseAuthentication();
+app.UseAuthorization();
+
 
 if (app.Environment.IsDevelopment())
 {
@@ -50,8 +75,8 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy" }))
     .WithOpenApi()
     .Produces(200);
 
-app.MapControllers();
 app.UseCors(AllowedOriginsName);
+app.MapControllers();
 app.Run();
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
