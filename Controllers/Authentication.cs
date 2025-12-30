@@ -35,11 +35,13 @@ public class AuthenticationController : ControllerBase
 
     public void GenerateAndSaveRefreshToken(BuildsOfTitansNet.Models.User user)
     {
-        string refreshToken = AuthenticationService.GenerateRefreshToken();
+        (string refreshToken, string digest) = AuthenticationService.GenerateRefreshToken();
         AuthenticationService.SetTokensInsideCookie(refreshToken, HttpContext);
 
-        user.RefreshToken = refreshToken;
+        user.RefreshToken = digest;
         user.RefreshTokenCreatedAt = DateTime.UtcNow;
+
+        _dbContext.Users.Update(user);
     }
 
     [HttpPost("login")]
@@ -64,19 +66,15 @@ public class AuthenticationController : ControllerBase
                     Uid = tokenInfo.Subject,
                     Name = tokenInfo.Name,
                     Email = tokenInfo.Email,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
                 };
 
                 _dbContext.Users.Add(user);
 
                 await _dbContext.SaveChangesAsync();
-            }
-
-            if(user != null)
-            {
+            } else {
                 string jwtToken = AuthenticationService.GenerateJwtToken(user.Uid ?? "", user.Email ?? "", user.Name ?? "");
                 GenerateAndSaveRefreshToken(user);
+                await _dbContext.SaveChangesAsync();
                 
                 return Ok(new { token = jwtToken });
             }
@@ -99,19 +97,21 @@ public class AuthenticationController : ControllerBase
             return Unauthorized(new { message = "Refresh token cookie is missing." });
         }
 
-        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+
+        var digest = AuthenticationService.SHA256HexHashString(refreshToken);
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.RefreshToken == digest);
 
         if (user == null)
         {
             return Unauthorized(new { message = "Invalid refresh token." });
         }
 
-        string newJwtToken = AuthenticationService.GenerateJwtToken(user.Uid ?? "", user.Email ?? "", user.Name ?? "");
+        string newJwtToken = AuthenticationService.GenerateJwtToken(user.Id.ToString() ?? "", user.Email ?? "", user.Name ?? "");
         GenerateAndSaveRefreshToken(user);
 
         await _dbContext.SaveChangesAsync();
 
-        return Ok(new { token = newJwtToken });
+        return Ok(new { access_token = newJwtToken });
     }
 
 }
