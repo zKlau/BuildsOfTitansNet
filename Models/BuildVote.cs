@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace BuildsOfTitansNet.Models
 {
@@ -29,6 +30,7 @@ namespace BuildsOfTitansNet.Models
         [ForeignKey("UserId")]
         public User User { get; set; } = null!;
 
+        [JsonIgnore]
         [ForeignKey("BuildId")]
         public Build Build { get; set; } = null!;
     }

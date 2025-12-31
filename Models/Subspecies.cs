@@ -31,6 +31,7 @@ namespace BuildsOfTitansNet.Models
         [ForeignKey("SpeciesId")]
         public Species Species { get; set; } = null!;
 
+        [JsonIgnore]
         public ICollection<Build> Builds { get; set; } = new List<Build>();
     }
 }

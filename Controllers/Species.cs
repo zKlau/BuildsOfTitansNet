@@ -71,7 +71,7 @@ public class SpeciesController : ControllerBase
     }
 
 
-    [HttpGet("{name}")]
+    [HttpGet("name/{name}")]
     public async Task<IActionResult> GetSpeciesName(string name) 
     {
         var species = GetSpeciesFromDb();

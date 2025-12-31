@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace BuildsOfTitansNet.Models
 {
@@ -32,7 +33,10 @@ namespace BuildsOfTitansNet.Models
         public DateTime? RefreshTokenCreatedAt { get; set; }
 
         // Navigation properties
+    
+        [JsonIgnore]
         public ICollection<Build> Builds { get; set; } = new List<Build>();
+        [JsonIgnore]
         public ICollection<BuildVote> BuildVotes { get; set; } = new List<BuildVote>();
     }
 }
