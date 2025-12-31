@@ -3,7 +3,9 @@ using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
 using BuildsOfTitansNet.Data;
+using BuildsOfTitansNet.Services;
 using Google.Apis.Auth;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -13,14 +15,17 @@ using Microsoft.IdentityModel.Tokens;
 public class AuthenticationController : ControllerBase
 {
     private readonly ApplicationDbContext _dbContext;
-    public AuthenticationController(ApplicationDbContext dbContext)
+    private readonly ICurrentUserService _currentUserService;
+
+    public AuthenticationController(ApplicationDbContext dbContext, ICurrentUserService currentUserService)
     {
         _dbContext = dbContext;
+        _currentUserService = currentUserService;
     }
 
     public async Task<GoogleJsonWebSignature.Payload> ValidateGoogleToken(string idToken) => await GoogleJsonWebSignature.ValidateAsync(idToken);
 
- 
+
     public string? ExtractTokenFromHeader(string authorizationHeader)
     {
         if (AuthenticationHeaderValue.TryParse(authorizationHeader, out var headerValue))
@@ -48,13 +53,14 @@ public class AuthenticationController : ControllerBase
     public async Task<IActionResult> CreateLoginUser([FromHeader] string Authorization)
     {
         string? googleToken = ExtractTokenFromHeader(Authorization);
-        
+
         if (googleToken == null)
         {
             return Unauthorized(new { message = "Invalid Authorization header." });
         }
 
-        try {
+        try
+        {
             GoogleJsonWebSignature.Payload tokenInfo = await ValidateGoogleToken(googleToken);
 
             var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Uid == tokenInfo.Subject);
@@ -71,11 +77,13 @@ public class AuthenticationController : ControllerBase
                 _dbContext.Users.Add(user);
 
                 await _dbContext.SaveChangesAsync();
-            } else {
+            }
+            else
+            {
                 string jwtToken = AuthenticationService.GenerateJwtToken(user.Uid ?? "", user.Email ?? "", user.Name ?? "");
                 GenerateAndSaveRefreshToken(user);
                 await _dbContext.SaveChangesAsync();
-                
+
                 return Ok(new { token = jwtToken });
             }
 
@@ -112,6 +120,24 @@ public class AuthenticationController : ControllerBase
         await _dbContext.SaveChangesAsync();
 
         return Ok(new { access_token = newJwtToken });
+    }
+
+    [HttpDelete("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout()
+    {
+        var currentUser = await _currentUserService.GetCurrentUserAsync();
+
+        if (currentUser == null)
+        {
+            return Unauthorized();
+        }
+
+        currentUser.RefreshToken = null;
+        _dbContext.Users.Update(currentUser);
+        await _dbContext.SaveChangesAsync();
+
+        return NoContent();
     }
 
 }
