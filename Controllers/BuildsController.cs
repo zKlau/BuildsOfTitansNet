@@ -166,6 +166,40 @@ public class BuildsController : ControllerBase
         return Ok(newBuild);
     }
 
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteBuild(int id)
+    {
+        var currentUser = await _currentUserService.GetCurrentUserAsync();
+
+        if (currentUser == null)
+        {
+            return Unauthorized(new { message = "User not authenticated" });
+        }
+
+        var build = await _dbContext.Builds
+            .Include(b => b.BuildAbilities)
+            .Include(b => b.BuildVotes)
+            .Where(b => b.Id == id)
+            .FirstOrDefaultAsync();
+
+        if (build == null)
+        {
+            return NotFound(new { message = "Build not found" });
+        }
+
+        if (build.UserId != currentUser.Id)
+        {
+            return Forbid();
+        }
+
+        _dbContext.Builds.Remove(build);
+        _dbContext.BuildVotes.RemoveRange(build.BuildVotes);
+        _dbContext.Builds.Remove(build);
+        await _dbContext.SaveChangesAsync();
+
+        return Ok(new { message = "Build deleted successfully" });
+    }
+
     [HttpGet("dino/name/{name}")]
     public async Task<IActionResult> GetBuildPreviews(string name)
     {
