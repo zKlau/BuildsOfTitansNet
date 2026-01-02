@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace BuildsOfTitansNet.Models
 {
@@ -8,6 +9,7 @@ namespace BuildsOfTitansNet.Models
     {
         [Key]
         [Column("id")]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
         [Column("user_id")]
@@ -35,6 +37,7 @@ namespace BuildsOfTitansNet.Models
         [ForeignKey("UserId")]
         public User User { get; set; } = null!;
 
+        [JsonIgnore]
         [ForeignKey("SpeciesId")]
         public Species Species { get; set; } = null!;
 

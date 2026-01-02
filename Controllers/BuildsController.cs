@@ -95,6 +95,77 @@ public class BuildsController : ControllerBase
         };
     }
 
+    [HttpPost]
+    public async Task<IActionResult> CreateBuild([FromBody] BuildCreateRequest request)
+    {
+        var currentUser = await _currentUserService.GetCurrentUserAsync();
+
+        if (currentUser == null)
+        {
+            return Unauthorized(new { message = "User not authenticated" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequest(new { message = "Build name is required" });
+        }
+
+        if (request.Abilities == null || request.Abilities.Count == 0)
+        {
+            return BadRequest(new { message = "At least one ability is required" });
+        }
+
+        var speciesExists = await _dbContext.Species
+            .Where(s => s.Id == request.Species)
+            .Include(s => s.Subspecies)
+            .FirstOrDefaultAsync();
+
+        if (speciesExists == null)
+        {
+            return BadRequest(new { message = "Invalid species ID" });
+        }
+
+        if (!speciesExists.Subspecies.Any(ss => ss.Id == request.Subspecies))
+        {
+            return BadRequest(new { message = "Invalid subspecies ID for the given species" });
+        }
+
+        var newBuild = new Build
+        {
+            Name = request.Name,
+            Description = request.Description ?? string.Empty,
+            SpeciesId = request.Species,
+            SubspeciesId = request.Subspecies,
+            UserId = currentUser.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        foreach (var abilityId in request.Abilities)
+        {
+            var dinosaurAbility = await _dbContext.DinosaurAbilities
+                .Where(da => da.AbilityId == abilityId.Id)
+                .FirstOrDefaultAsync();
+
+            if (dinosaurAbility == null)
+            {
+                return BadRequest(new { message = $"Invalid ability ID: {abilityId.Id}" });
+            }
+
+            var buildAbility = new BuildAbility
+            {
+                DinosaurAbilityId = dinosaurAbility.Id
+            };
+
+            newBuild.BuildAbilities.Add(buildAbility);
+        }
+
+        _dbContext.Builds.Add(newBuild);
+        await _dbContext.SaveChangesAsync();
+
+        return Ok(newBuild);
+    }
+
     [HttpGet("dino/name/{name}")]
     public async Task<IActionResult> GetBuildPreviews(string name)
     {
@@ -166,6 +237,4 @@ public class BuildsController : ControllerBase
 
         return Ok(result);
     }
-
-
 }

@@ -37,6 +37,7 @@ namespace BuildsOfTitansNet.Models
         [ForeignKey("SpeciesId")]
         public Species Species { get; set; } = null!;
 
+        [JsonIgnore]
         [ForeignKey("AbilityId")]
         public Ability Ability { get; set; } = null!;
 
