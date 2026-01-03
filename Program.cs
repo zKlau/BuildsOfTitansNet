@@ -15,7 +15,7 @@ var AllowedOriginsName = "corsOriginsBuildsOfTitansNet";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: AllowedOriginsName,
-                      policy  =>
+                      policy =>
                       {
                           policy.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
 
@@ -33,6 +33,11 @@ builder.Services.AddAuthentication("Bearer")
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
+    });
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddHttpContextAccessor();

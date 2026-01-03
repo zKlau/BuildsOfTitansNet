@@ -1,4 +1,3 @@
-
 using Microsoft.AspNetCore.Mvc;
 using BuildsOfTitansNet.Data;
 using Microsoft.EntityFrameworkCore;
@@ -270,5 +269,69 @@ public class BuildsController : ControllerBase
         var result = await ReturnBuild(build, currentUser);
 
         return Ok(result);
+    }
+
+    [HttpPost("{id}/vote")]
+    public async Task<IActionResult> VoteBuild(int id, [FromBody] VoteRequest request)
+    {
+        var currentUser = await _currentUserService.GetCurrentUserAsync();
+        var build = await _dbContext.Builds
+           .Where(b => b.Id == id)
+           .FirstOrDefaultAsync();
+
+        if (currentUser == null)
+        {
+            return Unauthorized(new { message = "User not authenticated" });
+        }
+        
+        if (build == null)
+        {
+            return NotFound(new { message = "Build not found" });
+        }
+        
+        var existingVote = await _dbContext.BuildVotes
+            .Where(v => v.BuildId == id && v.UserId == currentUser.Id)
+            .FirstOrDefaultAsync();
+
+        if (request.VoteType == VoteType.Type.upvote && existingVote != null && existingVote.VoteType == (int)VoteType.Type.upvote ||
+            request.VoteType == VoteType.Type.downvote && existingVote != null && existingVote.VoteType == (int)VoteType.Type.downvote)
+        {
+            _dbContext.BuildVotes.Remove(existingVote);
+            await _dbContext.SaveChangesAsync();
+        }
+        else
+        {
+            var utcNow = new DateTime(DateTime.UtcNow.Ticks, DateTimeKind.Utc);
+            if (existingVote != null)
+            {
+                _dbContext.BuildVotes.Remove(existingVote);
+                var updatedVote = new BuildVote
+                {
+                    BuildId = id,
+                    UserId = currentUser.Id,
+                    VoteType = (int)request.VoteType,
+                    CreatedAt = new DateTime(existingVote.CreatedAt.Ticks, DateTimeKind.Utc),
+                    UpdatedAt = utcNow
+                };
+                _dbContext.BuildVotes.Add(updatedVote);
+            }
+            else
+            {
+                var newVote = new BuildVote
+                {
+                    BuildId = id,
+                    UserId = currentUser.Id,
+                    VoteType = (int)request.VoteType,
+                    CreatedAt = utcNow,
+                    UpdatedAt = utcNow
+                };
+                _dbContext.BuildVotes.Add(newVote);
+            }
+            await _dbContext.SaveChangesAsync();
+        }
+        var upvotes = await _dbContext.BuildVotes.CountAsync(v => v.BuildId == id && v.VoteType == (int)VoteType.Type.upvote);
+        var downvotes = await _dbContext.BuildVotes.CountAsync(v => v.BuildId == id && v.VoteType == (int)VoteType.Type.downvote);
+        
+        return Ok(new { user_vote = request.VoteType, upvotes, downvotes });
     }
 }
