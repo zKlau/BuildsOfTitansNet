@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using BuildsOfTitansNet.Data;
 using Microsoft.EntityFrameworkCore;
 using BuildsOfTitansNet.Services;
@@ -24,6 +24,7 @@ public class BuildsController : ControllerBase
             s.Name,
             created_at = s.CreatedAt,
             user_name = s.User?.Name ?? "Unknown",
+            description = s.Description,
             dinosaur = new
             {
                 s.Species.Id,
@@ -56,7 +57,7 @@ public class BuildsController : ControllerBase
             },
             abilities = s.BuildAbilities.Select(ba => new
             {
-                id = ba.Id,
+                id = ba.DinosaurAbilityId,
                 slots = new
                 {
                     id = ba.DinosaurAbility.AbilitySlot.Id,
@@ -283,12 +284,12 @@ public class BuildsController : ControllerBase
         {
             return Unauthorized(new { message = "User not authenticated" });
         }
-        
+
         if (build == null)
         {
             return NotFound(new { message = "Build not found" });
         }
-        
+
         var existingVote = await _dbContext.BuildVotes
             .Where(v => v.BuildId == id && v.UserId == currentUser.Id)
             .FirstOrDefaultAsync();
@@ -331,7 +332,110 @@ public class BuildsController : ControllerBase
         }
         var upvotes = await _dbContext.BuildVotes.CountAsync(v => v.BuildId == id && v.VoteType == (int)VoteType.Type.upvote);
         var downvotes = await _dbContext.BuildVotes.CountAsync(v => v.BuildId == id && v.VoteType == (int)VoteType.Type.downvote);
-        
+
         return Ok(new { user_vote = request.VoteType, upvotes, downvotes });
+    }
+
+    [HttpPut]
+    public async Task<IActionResult> UpdateBuild([FromBody] UpdateBuildFullRequest request)
+    {
+        var currentUser = await _currentUserService.GetCurrentUserAsync();
+
+        if (currentUser == null)
+        {
+            return Unauthorized(new { message = "User not authenticated" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequest(new { message = "Build name is required" });
+        }
+
+        if (request.Abilities == null || request.Abilities.Count == 0)
+        {
+            return BadRequest(new { message = "At least one ability is required" });
+        }
+
+        var build = await _dbContext.Builds
+            .Include(b => b.BuildAbilities)
+            .Include(b => b.User)
+            .Include(b => b.Species)
+                .ThenInclude(s => s.Diet)
+            .Include(b => b.Species)
+                .ThenInclude(s => s.BaseStat)
+            .Include(b => b.Species)
+                .ThenInclude(s => s.SpeciesAbilitySlots)
+                    .ThenInclude(sas => sas.AbilitySlot)
+            .Include(b => b.Subspecies)
+            .Include(b => b.BuildVotes)
+            .Include(b => b.BuildAbilities)
+                .ThenInclude(ba => ba.DinosaurAbility)
+                    .ThenInclude(da => da.Ability)
+            .Include(b => b.BuildAbilities)
+                .ThenInclude(ba => ba.DinosaurAbility)
+                    .ThenInclude(da => da.AbilitySlot)
+            .Where(b => b.Id == request.Id)
+            .FirstOrDefaultAsync();
+
+        if (build == null)
+        {
+            return NotFound(new { message = "Build not found" });
+        }
+
+        if (build.UserId != currentUser.Id)
+        {
+            return Forbid();
+        }
+
+        build.Name = request.Name;
+        build.Description = request.Description ?? string.Empty;
+        build.UpdatedAt = DateTime.UtcNow;
+
+        _dbContext.BuildAbilities.RemoveRange(build.BuildAbilities);
+
+        foreach (var ability in request.Abilities)
+        {
+            var dinosaurAbility = await _dbContext.DinosaurAbilities
+                .Where(da => da.Id == ability.Id)
+                .FirstOrDefaultAsync();
+
+            if (dinosaurAbility == null)
+            {
+                return BadRequest(new { message = $"Invalid ability ID: {ability.Id}" });
+            }
+
+            var buildAbility = new BuildAbility
+            {
+                DinosaurAbilityId = dinosaurAbility.Id,
+                Build = build
+            };
+
+            build.BuildAbilities.Add(buildAbility);
+        }
+
+        await _dbContext.SaveChangesAsync();
+
+        var updatedBuild = await _dbContext.Builds
+            .Include(b => b.User)
+            .Include(b => b.Species)
+                .ThenInclude(s => s.Diet)
+            .Include(b => b.Species)
+                .ThenInclude(s => s.BaseStat)
+            .Include(b => b.Species)
+                .ThenInclude(s => s.SpeciesAbilitySlots)
+                    .ThenInclude(sas => sas.AbilitySlot)
+            .Include(b => b.Subspecies)
+            .Include(b => b.BuildVotes)
+            .Include(b => b.BuildAbilities)
+                .ThenInclude(ba => ba.DinosaurAbility)
+                    .ThenInclude(da => da.Ability)
+            .Include(b => b.BuildAbilities)
+                .ThenInclude(ba => ba.DinosaurAbility)
+                    .ThenInclude(da => da.AbilitySlot)
+            .Where(b => b.Id == request.Id)
+            .FirstOrDefaultAsync();
+
+        var result = await ReturnBuild(updatedBuild!, currentUser);
+        return Ok(result); ;
     }
 }
