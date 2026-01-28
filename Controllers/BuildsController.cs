@@ -201,23 +201,74 @@ public class BuildsController : ControllerBase
     }
 
     [HttpGet("dino/name/{name}")]
-    public async Task<IActionResult> GetBuildPreviews(string name)
+    public async Task<IActionResult> GetBuildPreviews(
+        string name,
+        [FromQuery] int? page,
+        [FromQuery] int? limit,
+        [FromQuery] string? search,
+        [FromQuery] string? user,
+        [FromQuery] string? subspecies)
     {
-        var currentUser = await _currentUserService.GetCurrentUserAsync();
+        try
+        {
+            page = page ?? 1;
+            limit = limit ?? 10;
 
-        var builds = await _dbContext.Builds
-            .Where(b => b.Species.Name.ToLower() == name.ToLower())
-            .Include(b => b.User)
-            .Where(b => b.User != null)
-            .Include(b => b.Species)
-            .Include(b => b.Subspecies)
-            .Include(b => b.BuildVotes)
-            .OrderByDescending(b => b.BuildVotes.Count(v => v.VoteType == 0))
-            .ToListAsync();
+            if (page < 1) page = 1;
+            if (limit < 1) limit = 10;
+            if (limit > 50) limit = 50;
 
-        var buildPreviews = await Task.WhenAll(builds.Select(b => ReturnBuildPreview(b, currentUser)));
+            int offset = (page.Value - 1) * limit.Value;
 
-        return Ok(new { builds = buildPreviews });
+            var species = await _dbContext.Species
+                .FirstOrDefaultAsync(s => s.Name.ToLower() == name.ToLower());
+
+            if (species == null)
+            {
+                return NotFound(new { message = $"Dinosaur with name '{name}' not found." });
+            }
+
+            var currentUser = await _currentUserService.GetCurrentUserAsync();
+
+            var builds = _dbContext.Builds
+                .Where(b => b.SpeciesId == species.Id)
+                .Include(b => b.User)
+                .Include(b => b.Species)
+                .Include(b => b.Subspecies)
+                .Include(b => b.BuildVotes)
+                .Where(b => b.User != null)
+                .Where(b => string.IsNullOrWhiteSpace(search) || b.Name.ToLower().Contains(search.ToLower()))
+                .Where(b => string.IsNullOrWhiteSpace(user) || b.User!.Name.ToLower().Contains(user.ToLower()))
+                .Where(b => string.IsNullOrWhiteSpace(subspecies) || (b.Subspecies != null && b.Subspecies.Name.ToLower().Contains(subspecies.ToLower())));
+
+            var totalCount = await builds.CountAsync();
+
+            var buildList = await builds
+                .OrderByDescending(b => b.BuildVotes.Count(v => v.VoteType == 0))
+                .Skip(offset)
+                .Take(limit.Value)
+                .ToListAsync();
+
+            var totalPages = (int)Math.Ceiling(totalCount / (double)limit.Value);
+
+            var buildPreviews = await Task.WhenAll(buildList.Select(b => ReturnBuildPreview(b, currentUser)));
+
+            return Ok(new
+            {
+                builds = buildPreviews,
+                pagination = new
+                {
+                    current_page = page,
+                    per_page = limit,
+                    total_pages = totalPages,
+                    total_count = totalCount
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpGet("owner/{id}")]
